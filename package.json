@@ -1,0 +1,17 @@
+{
+  "name": "bora-jogar",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "import:data": "node scripts/import-content.mjs",
+    "dev": "vite",
+    "build": "npm run import:data && vite build",
+    "preview": "vite preview",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "vite": "^7.0.0"
+  }
+}

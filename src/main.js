@@ -1,4 +1,4 @@
-const app = document.querySelector("#app");
+﻿const app = document.querySelector("#app");
 const content = window.BORA_CONTENT || {};
 
 const normalize = (text) =>
@@ -18,18 +18,7 @@ const getWords = () => {
   if (source.length > 30) {
     return source;
   }
-  return [
-    "INOVACAO",
-    "PATENTE",
-    "MARCA",
-    "DADOS",
-    "GESTAO",
-    "CURSO",
-    "TECNOLOGIA",
-    "INPI",
-    "PROJETO",
-    "SERVICO"
-  ];
+  return ["INOVACAO", "PATENTE", "MARCA", "DADOS", "GESTAO", "CURSO", "TECNOLOGIA", "INPI", "PROJETO", "SERVICO"];
 };
 
 const words = getWords();
@@ -38,65 +27,53 @@ const objectives = (content.courses || []).map((c) => c.objetivo).filter(Boolean
 const topics = (content.topics || []).map((t) => normalize(t)).filter(Boolean);
 
 const gameDefs = [
-  {
-    id: "conexoes",
-    name: "Conexoes do Saber",
-    subtitle: "Descubra os 4 grupos de termos"
-  },
-  {
-    id: "enigma",
-    name: "Enigma do Dito",
-    subtitle: "Acerte a palavra omitida da frase"
-  },
-  {
-    id: "mini-cruzes",
-    name: "Mini Cruzes PI",
-    subtitle: "Cruze as respostas no mini tabuleiro"
-  },
-  {
-    id: "grade",
-    name: "Grade Oculta",
-    subtitle: "Encontre palavras escondidas"
-  },
-  {
-    id: "colmeia",
-    name: "Colmeia INPI",
-    subtitle: "Monte palavras usando a letra central"
-  },
-  {
-    id: "rota",
-    name: "Rota em Rede",
-    subtitle: "Saia do labirinto de conhecimento"
-  },
-  {
-    id: "escada",
-    name: "Escada Lexica",
-    subtitle: "Transforme palavra por palavra"
-  },
-  {
-    id: "trilha",
-    name: "Trilha Wend PI",
-    subtitle: "Siga a trilha de letras sem quebrar a rota"
-  }
+  { id: "conexoes", name: "Conexões do Saber", subtitle: "Descubra os 4 grupos de termos" },
+  { id: "enigma", name: "Enigma do Dito", subtitle: "Acerte a palavra omitida da frase" },
+  { id: "mini-cruzes", name: "Mini-Cruzes PI", subtitle: "Cruze as respostas no mini tabuleiro" },
+  { id: "grade", name: "Grade Oculta", subtitle: "Encontre palavras escondidas" },
+  { id: "colmeia", name: "Colmeia INPI", subtitle: "Monte palavras usando a letra central" },
+  { id: "rota", name: "Rota em Rede", subtitle: "Saia do labirinto de conhecimento" },
+  { id: "escada", name: "Escada Léxica", subtitle: "Transforme palavra por palavra" },
+  { id: "trilha", name: "Trilha Wend PI", subtitle: "Siga a trilha de letras sem quebrar a rota" }
 ];
+
+const ui = {
+  activeCard: null,
+  modal: null,
+  panel: null,
+  title: null
+};
 
 function mountLayout() {
   app.innerHTML = `
     <main class="main-wrap">
-      <section class="hero">
+      <section class="hero" aria-label="Capa Bora Jogar">
+        <div class="hero-art" aria-hidden="true">
+          <div class="geo-icon brain"><span></span></div>
+          <div class="geo-icon bolt"></div>
+          <div class="geo-icon bulb"><span></span></div>
+        </div>
         <img src="/bora_jogar.png" alt="Bora Jogar" />
-        <p>Escolha um jogo e treine raciocinio logico e vocabulario com conteudo derivado das pastas pgc-inpi e pgi-inpi.</p>
+        <h1 class="hero-title">BORA JOGAR!</h1>
+        <p>Escolha um jogo e treine raciocínio lógico e vocabulário com conteúdo derivado das pastas pgc-inpi e pgi-inpi.</p>
       </section>
-      <section class="games-grid" id="games-grid"></section>
-      <section class="game-panel" id="game-panel">
-        <h2 class="game-title">Selecione um jogo</h2>
-        <p class="hint">Cada card abre um minijogo diferente.</p>
-      </section>
+      <section class="games-grid" id="games-grid" aria-label="Painel de jogos"></section>
     </main>
+    <section class="game-modal" id="game-modal" hidden>
+      <div class="modal-shell" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <button class="game-back" id="game-back" type="button">← Voltar aos jogos</button>
+        <h2 class="game-title" id="modal-title">Selecione um jogo</h2>
+        <div class="game-panel" id="game-panel">
+          <p class="hint">Abra um card para começar.</p>
+        </div>
+      </div>
+    </section>
   `;
 
   const grid = document.querySelector("#games-grid");
-  const panel = document.querySelector("#game-panel");
+  ui.modal = document.querySelector("#game-modal");
+  ui.panel = document.querySelector("#game-panel");
+  ui.title = document.querySelector("#modal-title");
 
   gameDefs.forEach((game) => {
     const card = document.createElement("button");
@@ -104,17 +81,49 @@ function mountLayout() {
     card.type = "button";
     card.dataset.game = game.id;
     card.innerHTML = `<h3>${game.name}</h3><p>${game.subtitle}</p>`;
-    card.addEventListener("click", () => {
-      document.querySelectorAll(".game-card").forEach((el) => el.classList.remove("active"));
-      card.classList.add("active");
-      renderGame(game.id, panel, game.name);
-    });
+    card.addEventListener("click", () => openGameModal(game, card));
     grid.appendChild(card);
+  });
+
+  document.querySelector("#game-back").addEventListener("click", closeGameModal);
+  ui.modal.addEventListener("click", (event) => {
+    if (event.target === ui.modal) {
+      closeGameModal();
+    }
+  });
+
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !ui.modal.hidden) {
+      closeGameModal();
+    }
   });
 }
 
+function openGameModal(game, card) {
+  if (ui.activeCard) {
+    ui.activeCard.classList.remove("active");
+  }
+  ui.activeCard = card;
+  ui.activeCard.classList.add("active");
+  ui.modal.hidden = false;
+  document.body.classList.add("modal-open");
+  renderGame(game.id, ui.panel, game.name);
+}
+
+function closeGameModal() {
+  ui.modal.hidden = true;
+  document.body.classList.remove("modal-open");
+  if (ui.activeCard) {
+    ui.activeCard.classList.remove("active");
+    ui.activeCard = null;
+  }
+  ui.title.textContent = "Selecione um jogo";
+  ui.panel.innerHTML = `<p class="hint">Abra um card para começar.</p>`;
+}
+
 function renderGame(id, panel, title) {
-  panel.innerHTML = `<h2 class="game-title">${title}</h2>`;
+  ui.title.textContent = title;
+  panel.innerHTML = "";
   switch (id) {
     case "conexoes":
       renderConnections(panel);
@@ -141,6 +150,7 @@ function renderGame(id, panel, title) {
       renderWend(panel);
       break;
     default:
+      panel.innerHTML = `<p class="hint">Jogo indisponível no momento.</p>`;
       break;
   }
 }
@@ -156,23 +166,16 @@ function setStatus(host, message, ok = false) {
 
 function renderConnections(panel) {
   const all = shuffle(words).slice(0, 16);
-  const groups = {
-    A: all.slice(0, 4),
-    B: all.slice(4, 8),
-    C: all.slice(8, 12),
-    D: all.slice(12, 16)
-  };
+  const groups = { A: all.slice(0, 4), B: all.slice(4, 8), C: all.slice(8, 12), D: all.slice(12, 16) };
 
   const mapGroup = new Map();
-  Object.entries(groups).forEach(([group, terms]) => {
-    terms.forEach((term) => mapGroup.set(term, group));
-  });
+  Object.entries(groups).forEach(([group, terms]) => terms.forEach((term) => mapGroup.set(term, group)));
 
   const picked = new Set();
   const solved = new Set();
 
   const host = document.createElement("div");
-  host.innerHTML = `<p class="hint">Selecione 4 termos e clique em Validar para encontrar combinacoes corretas.</p>`;
+  host.innerHTML = `<p class="hint">Selecione 4 termos e clique em Validar para encontrar combinações corretas.</p>`;
 
   const grid = document.createElement("div");
   grid.className = "btn-row";
@@ -182,9 +185,7 @@ function renderConnections(panel) {
     btn.textContent = term;
     btn.type = "button";
     btn.addEventListener("click", () => {
-      if (solved.has(term)) {
-        return;
-      }
+      if (solved.has(term)) return;
       if (picked.has(term)) {
         picked.delete(term);
         btn.classList.remove("selected");
@@ -210,7 +211,7 @@ function renderConnections(panel) {
     const group = mapGroup.get(selected[0]);
     const ok = selected.every((item) => mapGroup.get(item) === group);
     if (!ok) {
-      setStatus(host, "Grupo incorreto. Tente outra combinacao.");
+      setStatus(host, "Grupo incorreto. Tente outra combinação.");
       return;
     }
     selected.forEach((item) => solved.add(item));
@@ -218,28 +219,28 @@ function renderConnections(panel) {
     [...grid.children].forEach((el) => {
       if (solved.has(el.textContent)) {
         el.disabled = true;
-        el.style.background = "#bae8cd";
+        el.style.background = "#c8ffd6";
       } else {
         el.classList.remove("selected");
       }
     });
     if (solved.size === 16) {
-      setStatus(host, "Perfeito! Voce encontrou os 4 grupos.", true);
+      setStatus(host, "Perfeito! Você encontrou os 4 grupos.", true);
     } else {
       setStatus(host, "Boa! Grupo encontrado.", true);
     }
   });
-  controls.appendChild(check);
 
+  controls.appendChild(check);
   host.append(grid, controls);
   panel.appendChild(host);
 }
 
 function renderDito(panel) {
-  const sentence = objectives.find((item) => normalize(item).split(" ").length > 8) || "A inovacao no INPI depende de estrategia, metodo e colaboracao entre equipes.";
+  const sentence = objectives.find((item) => normalize(item).split(" ").length > 8) || "A inovação no INPI depende de estratégia, método e colaboração entre equipes.";
   const clean = sentence.replace(/\s+/g, " ").trim();
   const candidates = clean.split(" ").filter((w) => normalize(w).length > 5);
-  const hidden = rand(candidates) || "inovacao";
+  const hidden = rand(candidates) || "inovação";
   const masked = clean.replace(hidden, "_____ ");
 
   const host = document.createElement("div");
@@ -251,7 +252,7 @@ function renderDito(panel) {
   btn.textContent = "Conferir";
   btn.addEventListener("click", () => {
     const ok = normalize(input.value) === normalize(hidden);
-    setStatus(host, ok ? "Acertou a palavra oculta!" : `Nao foi dessa vez. Resposta: ${hidden}`, ok);
+    setStatus(host, ok ? "Acertou a palavra oculta!" : `Não foi dessa vez. Resposta: ${hidden}`, ok);
   });
   const row = document.createElement("div");
   row.className = "btn-row";
@@ -301,7 +302,7 @@ function renderCrossword(panel) {
   btn.textContent = "Verificar";
   btn.addEventListener("click", () => {
     const ok = inputs.every((i) => normalize(i.value) === i.dataset.answer);
-    setStatus(host, ok ? "Mini cruzadinha resolvida!" : "Ainda ha letras incorretas.", ok);
+    setStatus(host, ok ? "Mini-cruzadinha resolvida!" : "Ainda há letras incorretas.", ok);
   });
 
   host.append(grid, btn);
@@ -317,27 +318,23 @@ function renderWordSearch(panel) {
     const letters = word.split("");
     const horizontal = index % 2 === 0;
     const row = (index * 2) % size;
-    const col = horizontal ? 1 : (index + 1);
+    const col = horizontal ? 1 : index + 1;
     letters.forEach((ch, i) => {
       const y = horizontal ? row : (row + i) % size;
       const x = horizontal ? col + i : col;
-      if (x < size) {
-        matrix[y][x] = ch;
-      }
+      if (x < size) matrix[y][x] = ch;
     });
   });
 
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   for (let y = 0; y < size; y += 1) {
     for (let x = 0; x < size; x += 1) {
-      if (!matrix[y][x]) {
-        matrix[y][x] = alphabet[Math.floor(Math.random() * alphabet.length)];
-      }
+      if (!matrix[y][x]) matrix[y][x] = alphabet[Math.floor(Math.random() * alphabet.length)];
     }
   }
 
   const host = document.createElement("div");
-  host.innerHTML = `<p class="hint">Clique nas letras em sequencia para formar uma palavra alvo.</p><div>${targets.map((w) => `<span class="word-chip">${w}</span>`).join("")}</div>`;
+  host.innerHTML = `<p class="hint">Clique nas letras em sequência para formar uma palavra-alvo.</p><div>${targets.map((w) => `<span class="word-chip">${w}</span>`).join("")}</div>`;
 
   const grid = document.createElement("div");
   grid.className = "grid-letters";
@@ -354,9 +351,7 @@ function renderWordSearch(panel) {
       el.dataset.x = String(x);
       el.dataset.y = String(y);
       el.addEventListener("click", () => {
-        if (el.classList.contains("hit")) {
-          return;
-        }
+        if (el.classList.contains("hit")) return;
         picked.push(el);
         el.classList.add("selected");
       });
@@ -366,7 +361,7 @@ function renderWordSearch(panel) {
 
   const btn = document.createElement("button");
   btn.type = "button";
-  btn.textContent = "Checar sequencia";
+  btn.textContent = "Checar sequência";
   btn.addEventListener("click", () => {
     const formed = picked.map((el) => el.textContent).join("");
     if (targets.includes(formed) && !found.has(formed)) {
@@ -376,12 +371,10 @@ function renderWordSearch(panel) {
         el.classList.add("hit");
       });
       setStatus(host, `Boa! Palavra ${formed} encontrada.`, true);
-      if (found.size === targets.length) {
-        setStatus(host, "Excelente! Todas as palavras encontradas.", true);
-      }
+      if (found.size === targets.length) setStatus(host, "Excelente! Todas as palavras encontradas.", true);
     } else {
       picked.forEach((el) => el.classList.remove("selected"));
-      setStatus(host, "Sequencia invalida. Tente novamente.");
+      setStatus(host, "Sequência inválida. Tente novamente.");
     }
     picked.length = 0;
   });
@@ -393,9 +386,7 @@ function renderWordSearch(panel) {
 function renderBee(panel) {
   const baseWord = rand(words.filter((w) => w.length >= 7)) || "INOVACAO";
   const letters = shuffle(Array.from(new Set(baseWord.split("")))).slice(0, 7);
-  while (letters.length < 7) {
-    letters.push(String.fromCharCode(65 + letters.length));
-  }
+  while (letters.length < 7) letters.push(String.fromCharCode(65 + letters.length));
   const center = letters[0];
 
   const dictionary = new Set(
@@ -421,26 +412,15 @@ function renderBee(panel) {
 
   btn.addEventListener("click", () => {
     const value = normalize(input.value);
-    if (!value.includes(center)) {
-      setStatus(host, "A palavra precisa ter a letra central.");
-      return;
-    }
-    if (value.length < 4) {
-      setStatus(host, "Use palavras com 4 ou mais letras.");
-      return;
-    }
-    if (!dictionary.has(value)) {
-      setStatus(host, "Palavra fora da base importada.");
-      return;
-    }
-    if (found.has(value)) {
-      setStatus(host, "Voce ja encontrou essa palavra.");
-      return;
-    }
+    if (!value.includes(center)) return setStatus(host, "A palavra precisa ter a letra central.");
+    if (value.length < 4) return setStatus(host, "Use palavras com 4 ou mais letras.");
+    if (!dictionary.has(value)) return setStatus(host, "Palavra fora da base importada.");
+    if (found.has(value)) return setStatus(host, "Você já encontrou essa palavra.");
+
     found.add(value);
     input.value = "";
     score.textContent = `Pontos: ${found.size}`;
-    setStatus(host, "Boa! Palavra valida.", true);
+    setStatus(host, "Boa! Palavra válida.", true);
   });
 
   const row = document.createElement("div");
@@ -466,7 +446,7 @@ function renderMaze(panel) {
   const goal = { x: 7, y: 7 };
 
   const host = document.createElement("div");
-  host.innerHTML = `<p class="hint">Use as setas do teclado ou botoes para chegar ao destino verde.</p>`;
+  host.innerHTML = `<p class="hint">Use as setas do teclado ou botões para chegar ao destino verde.</p>`;
 
   const grid = document.createElement("div");
   grid.className = "grid-letters";
@@ -478,12 +458,8 @@ function renderMaze(panel) {
       row.forEach((cell, x) => {
         const el = document.createElement("div");
         el.className = "cell";
-        if (cell === 1) {
-          el.classList.add("block");
-        }
-        if (x === goal.x && y === goal.y) {
-          el.classList.add("goal");
-        }
+        if (cell === 1) el.classList.add("block");
+        if (x === goal.x && y === goal.y) el.classList.add("goal");
         if (x === player.x && y === player.y) {
           el.classList.add("player");
           el.textContent = "P";
@@ -496,14 +472,10 @@ function renderMaze(panel) {
   const move = (dx, dy) => {
     const nx = player.x + dx;
     const ny = player.y + dy;
-    if (nx < 0 || ny < 0 || nx >= 8 || ny >= 8 || maze[ny][nx] === 1) {
-      return;
-    }
+    if (nx < 0 || ny < 0 || nx >= 8 || ny >= 8 || maze[ny][nx] === 1) return;
     player = { x: nx, y: ny };
     draw();
-    if (nx === goal.x && ny === goal.y) {
-      setStatus(host, "Voce concluiu o labirinto!", true);
-    }
+    if (nx === goal.x && ny === goal.y) setStatus(host, "Você concluiu o labirinto!", true);
   };
 
   const controls = document.createElement("div");
@@ -517,7 +489,7 @@ function renderMaze(panel) {
   });
 
   const keyHandler = (event) => {
-    if (!panel.contains(host)) {
+    if (ui.modal.hidden || !panel.contains(host)) {
       window.removeEventListener("keydown", keyHandler);
       return;
     }
@@ -537,7 +509,7 @@ function renderCrossclimb(panel) {
   const ladder = ["DADO", "DANO", "DINO", "FINO", "FIND"];
 
   const host = document.createElement("div");
-  host.innerHTML = `<p class="hint">Cada linha deve mudar apenas 1 letra em relacao a anterior.</p><p>Inicio: <strong>${ladder[0]}</strong> | Fim: <strong>${ladder[ladder.length - 1]}</strong></p>`;
+  host.innerHTML = `<p class="hint">Cada linha deve mudar apenas 1 letra em relação à anterior.</p><p>Início: <strong>${ladder[0]}</strong> | Fim: <strong>${ladder[ladder.length - 1]}</strong></p>`;
 
   const inputs = [];
   for (let i = 1; i < ladder.length - 1; i += 1) {
@@ -555,7 +527,7 @@ function renderCrossclimb(panel) {
     const attempt = [ladder[0], ...inputs.map((i) => normalize(i.value)), ladder[ladder.length - 1]];
     const expected = ladder.map((w) => normalize(w));
     const valid = attempt.every((word, index) => word === expected[index]);
-    setStatus(host, valid ? "Escada completa!" : "Escada invalida. Revise os passos.", valid);
+    setStatus(host, valid ? "Escada completa!" : "Escada inválida. Revise os passos.", valid);
   });
 
   host.appendChild(btn);
@@ -570,7 +542,7 @@ function renderWend(panel) {
   const chars = merged.padEnd(rows * width, "X").split("");
 
   const host = document.createElement("div");
-  host.innerHTML = `<p class="hint">Forme as palavras na ordem, clicando letras adjacentes.</p><p>${targetWords.map((w) => `<span class="word-chip">${w}</span>`).join("")}</p>`;
+  host.innerHTML = `<p class="hint">Forme as palavras na ordem, clicando em letras adjacentes.</p><p>${targetWords.map((w) => `<span class="word-chip">${w}</span>`).join("")}</p>`;
 
   const grid = document.createElement("div");
   grid.className = "grid-letters";
@@ -586,9 +558,7 @@ function renderWend(panel) {
     btn.textContent = ch;
     btn.dataset.idx = String(index);
     btn.addEventListener("click", () => {
-      if (btn.classList.contains("hit")) {
-        return;
-      }
+      if (btn.classList.contains("hit")) return;
       const last = picked[picked.length - 1];
       if (last) {
         const li = Number(last.dataset.idx);
@@ -609,7 +579,7 @@ function renderWend(panel) {
       if (!target.startsWith(formed)) {
         picked.forEach((el) => el.classList.remove("selected"));
         picked.length = 0;
-        setStatus(host, "Sequencia incorreta para a palavra atual.");
+        setStatus(host, "Sequência incorreta para a palavra atual.");
         return;
       }
       if (formed === target) {
@@ -620,9 +590,9 @@ function renderWend(panel) {
         picked.length = 0;
         currentWord += 1;
         if (currentWord >= targetWords.length) {
-          setStatus(host, "Trilha concluida com sucesso!", true);
+          setStatus(host, "Trilha concluída com sucesso!", true);
         } else {
-          setStatus(host, "Palavra concluida, continue para a proxima.", true);
+          setStatus(host, "Palavra concluída. Continue para a próxima.", true);
         }
       }
     });

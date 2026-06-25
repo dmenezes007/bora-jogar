@@ -48,14 +48,8 @@ function mountLayout() {
   app.innerHTML = `
     <main class="main-wrap">
       <section class="hero" aria-label="Capa Bora Jogar">
-        <div class="hero-art" aria-hidden="true">
-          <div class="geo-icon brain"><span></span></div>
-          <div class="geo-icon bolt"></div>
-          <div class="geo-icon bulb"><span></span></div>
-        </div>
         <img src="/bora_jogar.png" alt="Bora Jogar" />
-        <h1 class="hero-title">BORA JOGAR!</h1>
-        <p>Escolha um jogo e treine raciocínio lógico e vocabulário com conteúdo derivado das pastas pgc-inpi e pgi-inpi.</p>
+        <p>Teste o seu raciocínio lógico e vocabulário com os jogos da Gestão do Conhecimento e da Gestão da Inovação.</p>
       </section>
       <section class="games-grid" id="games-grid" aria-label="Painel de jogos"></section>
     </main>

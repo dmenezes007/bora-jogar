@@ -191,6 +191,10 @@ body.modal-open {
   z-index: 30;
 }
 
+.game-modal[hidden] {
+  display: none !important;
+}
+
 .modal-shell {
   width: min(1020px, 96vw);
   max-height: 92vh;

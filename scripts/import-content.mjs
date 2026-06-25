@@ -1,4 +1,4 @@
-import { readFile, readdir, writeFile } from "node:fs/promises";
+import { access, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -28,6 +28,15 @@ const parseCsv = (raw) =>
     .split(/\r?\n/)
     .filter(Boolean)
     .map((line) => line.split(";"));
+
+async function pathExists(targetPath) {
+  try {
+    await access(targetPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 async function readPgcCourses() {
   const filePath = path.join(pgcDir, "curadoria_de_cursos.csv");
@@ -73,9 +82,25 @@ async function readDocs(folder) {
 }
 
 async function main() {
+  const pgcCoursesPath = path.join(pgcDir, "curadoria_de_cursos.csv");
+  const pgcDocsPath = path.join(pgcDir, "src", "files", "docs");
+  const pgiDocsPath = path.join(pgiDir, "files", "docs");
+
+  const sourcesAvailable =
+    (await pathExists(pgcCoursesPath)) &&
+    (await pathExists(pgcDocsPath)) &&
+    (await pathExists(pgiDocsPath));
+
+  if (!sourcesAvailable) {
+    console.warn(
+      "Fontes externas nao encontradas (pgc-inpi/pgi-inpi). Mantendo conteudo versionado para build/deploy."
+    );
+    return;
+  }
+
   const courses = await readPgcCourses();
-  const pgcDocs = await readDocs(path.join(pgcDir, "src", "files", "docs"));
-  const pgiDocs = await readDocs(path.join(pgiDir, "files", "docs"));
+  const pgcDocs = await readDocs(pgcDocsPath);
+  const pgiDocs = await readDocs(pgiDocsPath);
 
   const lexicon = new Set();
   const phrases = [];
